@@ -1,0 +1,19 @@
+{
+  "launchParameter": {
+    "jobName": "pg2bq-10min",
+    "containerSpecGcsPath": "gs://dataflow-templates-us-central1/latest/flex/PostgreSQL_to_BigQuery",
+    "parameters": {
+      "connectionURL": "jdbc:postgresql://google/my-db?cloudSqlInstance=healthcare-oltp-olap:us-central1:oltp-postgres&socketFactory=com.google.cloud.sql.postgres.SocketFactory",
+      "username": "postgres",
+      "password": "********",
+      "query": "SELECT event_id, patient_id, loinc_code, code_display, value_num, unit, effective_ts, source, raw::text AS raw, created_at FROM public.vitals_events WHERE effective_ts >= NOW() - INTERVAL '10 minutes'",
+      "outputTable": "healthcare-oltp-olap:healthcare_analytics.vitals_raw",
+      "bigQueryLoadingTemporaryDirectory": "gs://healthcare-oltp-olap-raw/dataflow/bqtemp"
+    },
+    "environment": {
+      "stagingLocation": "gs://healthcare-oltp-olap-raw/dataflow/staging",
+      "tempLocation": "gs://healthcare-oltp-olap-raw/dataflow/temp",
+      "serviceAccountEmail": "32112765044-compute@developer.gserviceaccount.com"
+    }
+  }
+}
