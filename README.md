@@ -94,7 +94,7 @@ gcloud sql connect oltp-postgres --user=postgres
 # password used for this project: ********
 ```
 
-![Cloud SQL Instance](./screenshots/apis_and_services.png)
+![Cloud SQL Instance](./screenshots/cloud_sql_instance.png)
 
 ### OLTP Table:
 
