@@ -2,6 +2,52 @@
 
 This is a complete, working walkthrough of how I built an end-to-end data pipeline on `Google Cloud Platform (GCP)`. It starts with a tiny operational database, generates data into it on a schedule, replicates to BigQuery, transforms into a star schema, and adds basic monitoring. I used the following tools mainly: `Python`, `SQL`, `FastAPI`, `Cloud Run`, `Cloud Scheduler`, `Dataflow`, and `BigQuery`. I wrote it as a step-by-step guide of what I did, where I faced any blocker, and exactly how I fixed it.
 
+
+## Table of Contents
+
+- [Healthcare OLTP to OLAP on Google Cloud Platform (GCP)](#healthcare-oltp-to-olap-on-google-cloud-platform-gcp)
+  - [Repo layout](#repo-layout)
+  - [Why I picked these tools and patterns](#why-i-picked-these-tools-and-patterns)
+  - [Prerequisites](#prerequisites)
+  - [OLTP in Cloud SQL (PostgreSQL)](#oltp-in-cloud-sql-postgresql)
+    - [Cloud SQL Instance](#cloud-sql-instance)
+    - [OLTP Table](#oltp-table)
+    - [Reasoning of Data](#reasoning-of-data)
+  - [Data Generation (Cloud Run + FastAPI)](#data-generation-cloud-run--fastapi)
+    - [Endpoint](#endpoint)
+    - [Service Deployment](#service-deployment)
+    - [Single Ingestion Test](#single-ingestion-test)
+    - [Automatic Ingestion (every minute)](#automatic-ingestion-every-minute)
+  - [Creating the OLAP Dataset (BigQuery) with Scheduling](#creating-the-olap-dataset-bigquery-with-scheduling)
+    - [Staging Bucket for Dataflow](#staging-bucket-for-dataflow)
+    - [Manually Create 1 Dataflow Job](#manually-create-1-dataflow-job)
+    - [Schedule Dataflow Jobs (every 10 minutes)](#schedule-dataflow-jobs-every-10-minutes)
+  - [Analytics Model Design (Star Schema)](#analytics-model-design-star-schema)
+    - [How I Mapped my Data to a Star](#how-i-mapped-my-data-to-a-star)
+    - [Mapping from OLTP to Star](#mapping-from-oltp-to-star)
+    - [Star Model (Mermaid Renderer)](#star-model-mermaid-renderer)
+    - [Building the Model Tables](#building-the-model-tables)
+      - [FACT Table](#fact-table)
+      - [DIMENSIONS Tables](#dimensions-tables)
+        - [Time dimension (calendar helper)](#time-dimension-calendar-helper)
+        - [Patient dimension](#patient-dimension)
+        - [Code dimension](#code-dimension)
+        - [Unit dimension](#unit-dimension)
+        - [Source dimension](#source-dimension)
+      - [STAR FACT (Partitioned-Clustered)](#star-fact-partitioned-clustered)
+      - [Sanity Checks](#sanity-checks)
+      - [Schedule Model to Refresh](#schedule-model-to-refresh)
+  - [Replication Process Monitoring](#replication-process-monitoring)
+    - [Views in BigQuery](#views-in-bigquery)
+      - [Base View (Scheduler View)](#base-view-scheduler-view)
+      - [Latest Status per Job](#latest-status-per-job)
+      - [Daily Summary per Job](#daily-summary-per-job)
+      - [7-Day Summary per Job](#7-day-summary-per-job)
+      - [Failures (Latest First)](#failures-latest-first)
+    - [Views Hooked to Looker Studio](#views-hooked-to-looker-studio)
+  - [Conclusion](#conclusion)
+
+
 ## Repo layout:
 
 ```bash
